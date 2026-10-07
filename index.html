@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>週間スケジュール画像メーカー</title>
+<meta name="description" content="配信の週間スケジュールを入力するだけで告知用の画像を作れるブラウザツール。画像やデータは外部に送信されません。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='24' height='22' rx='4' fill='%237c5cff'/%3E%3Crect x='4' y='6' width='24' height='7' rx='3' fill='%235a3fe0'/%3E%3Crect x='9' y='3' width='3' height='7' rx='1.5' fill='%23333'/%3E%3Crect x='20' y='3' width='3' height='7' rx='1.5' fill='%23333'/%3E%3Crect x='9' y='17' width='5' height='4' rx='1' fill='white'/%3E%3Crect x='18' y='17' width='5' height='4' rx='1' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>週間スケジュール画像メーカー</h1>
+    <p class="lead">1週間の配信予定を入力すると、告知用の画像ができあがります。入力内容はこのブラウザに保存されるので、翌週は変わったところだけ直せば完成します。</p>
+    <p class="privacy">入力内容や画像はこのブラウザの中だけで処理され、外部には送信されません。</p>
+  </div>
+</header>
+
+<main class="wrap layout">
+  <!-- 入力 -->
+  <div class="form">
+    <section class="panel">
+      <h2>基本</h2>
+      <div class="grid2">
+        <label class="field">見出し<input type="text" id="title" maxlength="40"></label>
+        <label class="field">名前<input type="text" id="name" maxlength="40" placeholder="配信者名・チャンネル名"></label>
+        <label class="field">週の始まりの日<input type="date" id="week-start"></label>
+        <div class="field">
+          <span>週の移動</span>
+          <div class="btn-row">
+            <button type="button" class="btn" id="week-prev" aria-label="前の週へ">前の週</button>
+            <button type="button" class="btn" id="week-next" aria-label="次の週へ">次の週</button>
+          </div>
+        </div>
+      </div>
+      <p class="note">週を移動しても、入力した予定はそのまま残ります（毎週同じ予定なら日付だけ進めれば完成）。</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>予定</h2>
+        <button type="button" class="btn ghost" id="clear-all">予定をすべて消す</button>
+      </div>
+      <div id="days" class="days"></div>
+      <label class="field">ひとこと（告知など）<textarea id="note" rows="2" maxlength="120" placeholder="例：土曜はコラボ配信です！"></textarea></label>
+    </section>
+
+    <section class="panel">
+      <h2>見た目</h2>
+      <div class="grid2">
+        <label class="field">レイアウト
+          <select id="layout">
+            <option value="cards">カード</option>
+            <option value="list">リスト</option>
+          </select>
+        </label>
+        <label class="field">画像サイズ
+          <select id="size">
+            <option value="1920x1080">横長 16:9（1920×1080）</option>
+            <option value="1600x900">横長 16:9（1600×900）</option>
+            <option value="1080x1080">正方形 1:1（1080×1080）</option>
+            <option value="1080x1350">縦長 4:5（1080×1350）</option>
+            <option value="1080x1920">縦長 9:16（1080×1920）</option>
+          </select>
+        </label>
+        <label class="field">配色
+          <select id="theme"></select>
+        </label>
+        <label class="field">フォント
+          <select id="font">
+            <option value="sans">ゴシック（パソコンの標準）</option>
+            <option value="serif">明朝（パソコンの標準）</option>
+            <option value="custom" disabled>読み込んだフォント</option>
+          </select>
+        </label>
+        <label class="field">曜日の書き方
+          <select id="weekday-style">
+            <option value="ja">月・火・水</option>
+            <option value="en">MON・TUE・WED</option>
+          </select>
+        </label>
+        <label class="field check"><input type="checkbox" id="weekend-color"> 土曜を青・日曜を赤にする</label>
+      </div>
+
+      <details class="sub">
+        <summary>色を細かく調整</summary>
+        <div class="colors">
+          <label>背景（上）<input type="color" id="c-bg1"></label>
+          <label>背景（下）<input type="color" id="c-bg2"></label>
+          <label>枠<input type="color" id="c-surface"></label>
+          <label>枠の濃さ<input type="range" id="c-alpha" min="0" max="1" step="0.05"></label>
+          <label>文字<input type="color" id="c-text"></label>
+          <label>強調<input type="color" id="c-accent"></label>
+        </div>
+        <p id="contrast-warn" class="note" role="status"></p>
+      </details>
+
+      <details class="sub">
+        <summary>画像（立ち絵・背景）</summary>
+        <div class="img-rows">
+          <div class="img-row">
+            <span>立ち絵</span>
+            <button type="button" class="btn" id="char-pick">選ぶ</button>
+            <button type="button" class="btn ghost" id="char-clear">外す</button>
+            <input type="file" id="char-file" accept="image/*" hidden>
+            <label>位置
+              <select id="char-side">
+                <option value="right">右</option>
+                <option value="left">左</option>
+              </select>
+            </label>
+          </div>
+          <div class="img-row">
+            <span>背景画像</span>
+            <button type="button" class="btn" id="bg-pick">選ぶ</button>
+            <button type="button" class="btn ghost" id="bg-clear">外す</button>
+            <input type="file" id="bg-file" accept="image/*" hidden>
+            <label>暗くする<input type="range" id="bg-dim" min="0" max="0.8" step="0.05"></label>
+          </div>
+        </div>
+        <p class="note">画像はページを閉じると消えます（保存されるのは文字と設定だけです）。背景画像が細かい模様だと文字が読みにくくなるので、「暗くする」と、色の調整の「枠の濃さ」で調整してください（上のコントラスト比は背景画像を考慮していません）。</p>
+      </details>
+
+      <details class="sub">
+        <summary>フォントファイルを読み込む</summary>
+        <div class="img-row">
+          <button type="button" class="btn" id="font-pick">フォントを選ぶ（.ttf / .otf / .woff / .woff2）</button>
+          <input type="file" id="font-file" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
+          <span id="font-name" class="note"></span>
+        </div>
+        <p class="note">手元のフォントファイルをこのブラウザで使います（アップロードはされません）。配布・商用利用の条件はフォントごとに違うので、各フォントのライセンスを確認してください。</p>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>保存・読み込み</h2>
+      <div class="btn-row">
+        <button type="button" class="btn" id="json-save">設定をファイルに保存</button>
+        <button type="button" class="btn" id="json-load">設定ファイルを読み込む</button>
+        <input type="file" id="json-file" accept=".json,application/json" hidden>
+      </div>
+      <p class="note">別のパソコンやブラウザに移すときに使います（画像は含まれません）。</p>
+    </section>
+  </div>
+
+  <!-- プレビュー -->
+  <aside class="preview">
+    <div class="preview-inner">
+      <canvas id="canvas" aria-label="スケジュール画像のプレビュー"></canvas>
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="download">PNGで保存</button>
+        <button type="button" class="btn" id="copy">画像をコピー</button>
+        <span id="status" class="note" role="status"></span>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><p>MIT License ／ 処理はすべてブラウザ内で完結します。</p></div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
