@@ -1,5 +1,7 @@
 # 週間スケジュール画像メーカー（Weekly-Schedule-Maker）
 
+https://ibaran1um.github.io/Weekly-Schedule-Maker/
+
 1週間の配信予定を入力するだけで、告知用のスケジュール画像（PNG）を作れるブラウザツールです。
 
 - レイアウトは「カード」と「リスト」の2種類
